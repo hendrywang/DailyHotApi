@@ -29,6 +29,34 @@ services:
     networks:
       - dailyhot-network
 
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dailyhot-api-service
+    restart: always
+    ports:
+      - "6690:6690"
+    environment:
+      - NODE_ENV=docker
+      - PORT=6690
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=dailyhot
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - API_KEY=${API_KEY}
+      - API_SECRET=${API_SECRET}
+    command: node /app/dist/api-server.js
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - dailyhot-network
+
   postgres:
     image: postgres:15-alpine
     container_name: dailyhot-postgres
