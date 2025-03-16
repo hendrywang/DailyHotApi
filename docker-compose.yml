@@ -1,15 +1,65 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  DailyhotApi:
+  api:
     build:
       context: .
-      target: runner
+      dockerfile: Dockerfile
+    container_name: dailyhot-api
+    restart: always
     ports:
       - "6688:6688"
-    volumes:
-      - "./logs:/app/logs"
     environment:
+      - NODE_ENV=docker
       - PORT=6688
-    user: "114514"
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=dailyhot
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - CRON_SCHEDULE=0 * * * *  # 每小时执行一次
+      - RUN_ON_START=true
+      - ENABLE_HISTORY_API=true
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - dailyhot-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: dailyhot-postgres
     restart: always
+    environment:
+      - POSTGRES_DB=dailyhot
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "6689:5432"
+    networks:
+      - dailyhot-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: dailyhot-redis
+    restart: always
+    command: redis-server
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - dailyhot-network
+
+networks:
+  dailyhot-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:

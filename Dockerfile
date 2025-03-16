@@ -1,6 +1,13 @@
 FROM node:20-alpine AS base
 
 ENV NODE_ENV=docker
+ENV TZ=Asia/Shanghai
+
+# 安装 tzdata 并设置时区
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    apk del tzdata
 
 # 清理缓存
 RUN rm -rf /var/cache/apk/*
@@ -18,6 +25,11 @@ COPY public ./public
 # 复制环境变量
 RUN [ ! -e ".env" ] && cp .env.example .env || true
 
+# 创建类型声明文件
+RUN mkdir -p src/types && \
+    echo "declare module 'pg';" > src/types/pg.d.ts && \
+    echo "declare module 'node-cron';" > src/types/node-cron.d.ts
+
 # 安装依赖
 RUN pnpm install
 RUN pnpm build
@@ -25,6 +37,12 @@ RUN pnpm prune --production
 
 # 运行阶段
 FROM base AS runner
+
+# 确保时区设置正确
+RUN apk add --no-cache tzdata && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone
+# 不删除 tzdata 包，保留时区数据
 
 # 创建用户和组
 RUN addgroup --system --gid 114514 nodejs
